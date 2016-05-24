@@ -11,6 +11,7 @@ endfunction "}}}
 let s:source = {
       \ 'name' : 'rspec',
       \ 'description' : 'candidates from rspec',
+      \ 'default_kind' : 'command',
       \}
 
 function! s:source.run_spec(path) abort "{{{
@@ -53,11 +54,16 @@ endfunction "}}}
 
 function! s:source.build_candidates(prefix, element) abort "{{{
   let abbr = s:String.replace(a:element, a:prefix, "")
-  let command = ":Unite output/shellcmd:rspec\\ --no-color\\ --format\\ documentation\\ ".a:element
   return {
     \ 'word' : a:element,
     \ 'abbr' : s:String.replace_first(abbr, '/', ''),
-    \ 'kind' : 'command',
-    \ "action__command": command
+    \ "action__command": self.build_command(a:element)
     \}
 endfunction "}}}
+
+function! s:source.build_command(spec) abort "{{{
+  let uniteOptions = '-log'
+  let shellcmd = 'rspec\\ --format\\ documentation\\ '.a:spec
+  return ':Unite '.uniteOptions.' output/shellcmd:'.shellcmd
+endfunction "}}}
+
