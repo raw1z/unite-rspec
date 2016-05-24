@@ -14,6 +14,7 @@ let s:source = {
       \}
 
 function! s:source.run_spec(path) abort "{{{
+  let command = "bundle exec rspec --no-color --format default ".spec
   return printf("echo %s", a:path)
 endfunction "}}}
 
@@ -21,12 +22,12 @@ function! s:source.gather_candidates(args, context) abort "{{{
   return self.list_specs()
 endfunction "}}}
 
-fun! s:source.list_specs() abort "{{{
+function! s:source.list_specs() abort "{{{
   let currentDirectory = getcwd()
   let specDirectory = s:Filepath.join(currentDirectory, "spec")
   let specHelperFile = s:Filepath.join(specDirectory, "/spec_helper.rb")
   if filereadable(specHelperFile)
-    let filesList = [{'word': specDirectory, 'abbr': 'spec'}]
+    let filesList = [self.build_candidates(currentDirectory, specDirectory)]
 
     " list spec directories
     let specDirectoryContents = s:Prelude.globpath(specDirectory, '*')
@@ -34,23 +35,29 @@ fun! s:source.list_specs() abort "{{{
     for element in specDirectoryContents
       let abbr = s:String.replace(element, specDirectory."/", "")
       if s:List.any('v:val == "'.abbr.'"', ignoredElements) == 0
-        let word = element
-        let filesList = s:List.push(filesList, {'word': word, 'abbr': abbr})
+        let filesList = s:List.push(filesList, self.build_candidates(specDirectory, element))
       endif
     endfor
 
     " list spec files
     let specFiles = s:Prelude.globpath(specDirectory, '**/*_spec.rb')
     for specFile in specFiles
-      let word = specFile
-      let abbr = s:String.replace(specFile, specDirectory."/", "")
-      let filesList = s:List.push(filesList, {'word': word, 'abbr': abbr})
+      let filesList = s:List.push(filesList, self.build_candidates(specDirectory, specFile))
     endfor
 
     return filesList
   else
     return []
   endif
-endf "}}}
+endfunction "}}}
 
-
+function! s:source.build_candidates(prefix, element) abort "{{{
+  let abbr = s:String.replace(a:element, a:prefix, "")
+  let command = ":Unite output/shellcmd:rspec\\ --no-color\\ --format\\ documentation\\ ".a:element
+  return {
+    \ 'word' : a:element,
+    \ 'abbr' : s:String.replace_first(abbr, '/', ''),
+    \ 'kind' : 'command',
+    \ "action__command": command
+    \}
+endfunction "}}}
