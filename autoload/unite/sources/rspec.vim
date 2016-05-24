@@ -11,7 +11,7 @@ endfunction "}}}
 let s:source = {
       \ 'name' : 'rspec',
       \ 'description' : 'candidates from rspec',
-      \ 'default_kind' : 'command',
+      \ 'default_kind' : 'command'
       \}
 
 function! s:source.run_spec(path) abort "{{{
@@ -54,10 +54,20 @@ endfunction "}}}
 
 function! s:source.build_candidates(prefix, element) abort "{{{
   let abbr = s:String.replace(a:element, a:prefix, "")
+
+  let kind = ['command']
+  if isdirectory(a:element)
+    let kind = s:List.unshift(kind, 'directory')
+  else
+    let kind = s:List.unshift(kind, 'file')
+  endif
+
   return {
     \ 'word' : a:element,
+    \ 'kind' : kind,
     \ 'abbr' : s:String.replace_first(abbr, '/', ''),
-    \ "action__command": self.build_command(a:element)
+    \ "action__command": self.build_command(a:element),
+    \ "action__path": a:element
     \}
 endfunction "}}}
 
