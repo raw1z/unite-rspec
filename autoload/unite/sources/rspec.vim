@@ -14,11 +14,6 @@ let s:source = {
       \ 'default_kind' : 'command'
       \}
 
-function! s:source.run_spec(path) abort "{{{
-  let command = "bundle exec rspec --no-color --format default ".spec
-  return printf("echo %s", a:path)
-endfunction "}}}
-
 function! s:source.gather_candidates(args, context) abort "{{{
   return self.list_specs()
 endfunction "}}}
@@ -72,8 +67,7 @@ function! s:source.build_candidates(prefix, element) abort "{{{
 endfunction "}}}
 
 function! s:source.build_command(spec) abort "{{{
-  let uniteOptions = '-log'
-  let shellcmd = 'rspec\\ --format\\ documentation\\ '.a:spec
-  return ':Unite '.uniteOptions.' output/shellcmd:'.shellcmd
+  let rspec_command = unite_rspec#set_rspec_command(a:spec, 0)
+  return unite_rspec#run_spec_command(rspec_command)
 endfunction "}}}
 
