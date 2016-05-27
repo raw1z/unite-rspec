@@ -4,7 +4,7 @@ function! unite_rspec#run_spec() abort "{{{
 
   if match(filepath, spec_file_regex) == -1
     if exists('g:unite_rspec_last_command')
-      exec unite_rspec#run_spec_command(g:unite_rspec_last_command)
+      call unite_rspec#run_last_spec()
     else
       exec ":RSpecUnite"
     endif
@@ -16,6 +16,12 @@ function! unite_rspec#run_spec() abort "{{{
   let spec = expand('%')
   let g:unite_rspec_last_command =unite_rspec#set_rspec_command(spec, line)
   exec unite_rspec#run_spec_command(g:unite_rspec_last_command)
+endfunction "}}}
+
+function! unite_rspec#run_last_spec() abort "{{{
+  if exists('g:unite_rspec_last_command')
+    exec unite_rspec#run_spec_command(g:unite_rspec_last_command)
+  endif
 endfunction "}}}
 
 function! unite_rspec#set_rspec_command(spec, line) abort "{{{
