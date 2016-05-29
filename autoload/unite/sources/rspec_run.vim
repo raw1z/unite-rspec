@@ -11,14 +11,30 @@ endfunction "}}}
 let s:source = {
       \ 'name' : 'rspec/run',
       \ 'description' : 'run rspec tests',
+      \ 'default_kind' : 'command',
       \ 'hooks' : {},
       \ 'lines' : 0,
       \}
 
+let g:unite_rspec_run_last_metadata = {}
+
 let s:job = {} "{{{
 
 function s:job.on_stdout(job_id, data)
-  let self.stdout = self.stdout . join(a:data, "\n")
+  let lines = []
+  for item in a:data
+    if (s:String.starts_with(item, '{') == 0) && (s:String.ends_with(item, '}') == 0)
+      let lines = s:List.conj(lines, item)
+    else
+      try
+        let g:unite_rspec_run_last_metadata = json_decode(item)
+      catch
+        " call unite#print_error(v:exception)
+      endtry
+    endif
+  endfor
+
+  let self.stdout = self.stdout . join(lines, "\n")
 endfunction
 
 function s:job.on_stderr(job_id, data)
@@ -36,7 +52,7 @@ function s:job.read_lines()
 endfunction
 
 function! s:job.build_rspec_command(spec)
-  return './bin/rspec --format documentation '.a:spec
+  return './bin/rspec --format documentation --format json '.a:spec
 endfunction
 
 function s:job.new(spec_to_run)
@@ -92,6 +108,7 @@ function! s:source.async_gather_candidates(args, context) abort "{{{
   let candidates = map(lines, "{
         \ 'word' : substitute(v:val, '\\e\\[[0-9;]*m', '', 'g'),
         \ 'abbr' : v:val,
+        \ 'action__command' : self.open_spec_file(v:val)
         \ }")
 
   return candidates
@@ -104,5 +121,38 @@ function! s:source.hooks.on_close(args, context) abort "{{{
       call jobstop(job.id)
     endif
   endif
+endfunction "}}}
+
+function! s:source.open_spec_file(data) "{{{
+  return "call rspec_run#open_spec_file('". a:data . "')"
+endfunction "}}}
+
+function! rspec_run#open_spec_file(data) abort "{{{
+  let label = s:String.trim(a:data)
+  let examples = g:unite_rspec_run_last_metadata.examples
+  for example in examples
+    let full_description = example.full_description
+    if stridx(full_description, label) != -1
+      let file_path = example.file_path
+      let line_number = example.line_number
+      let existing_buffer = bufnr(file_path)
+      let window = bufwinnr(existing_buffer)
+
+      if window == -1
+        execute 'wincmd j'
+
+        if &modified
+          execute 'bo split ' . file_path
+        else
+          execute 'e ' . file_path
+        endif
+      else
+        execute window . 'wincmd w'
+      endif
+
+      execute line_number
+      return
+    endif
+  endfor
 endfunction "}}}
 
