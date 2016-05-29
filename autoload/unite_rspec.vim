@@ -1,3 +1,6 @@
+let s:Vital = vital#of('vital')
+let s:String = s:Vital.import('Data.String')
+
 function! unite_rspec#run_spec() abort "{{{
   let filepath = expand("%")
   let spec_file_regex = '_spec\.rb$'
@@ -14,7 +17,7 @@ function! unite_rspec#run_spec() abort "{{{
 
   let line = line('.')
   let spec = expand('%')
-  let g:unite_rspec_last_command =unite_rspec#set_rspec_command(spec, line)
+  let g:unite_rspec_last_command = unite_rspec#build_rspec(spec, line)
   exec unite_rspec#run_spec_command(g:unite_rspec_last_command)
 endfunction "}}}
 
@@ -24,16 +27,18 @@ function! unite_rspec#run_last_spec() abort "{{{
   endif
 endfunction "}}}
 
-function! unite_rspec#set_rspec_command(spec, line) abort "{{{
-  let shellcmd = 'rspec\\ --format\\ documentation\\ '.a:spec
+function! unite_rspec#build_rspec(spec, line) abort "{{{
   if a:line > 0
-    let shellcmd = shellcmd.'\:'.a:line
+    return a:spec.':'.a:line
+  else
+    return a:spec
   endif
-  return shellcmd
 endfunction "}}}
 
 function! unite_rspec#run_spec_command(rspec_command) abort "{{{
+  let shellcmd = s:String.replace(a:rspec_command, ' ', '\\ ')
+  let shellcmd = s:String.replace(shellcmd, ':', '\:')
   let uniteOptions = '-log'
-  return ':Unite '.uniteOptions.' output/shellcmd:'.a:rspec_command
+  let run_cmd = ':Unite '.uniteOptions.' rspec/run:'.shellcmd
+  return run_cmd
 endfunction "}}}
-

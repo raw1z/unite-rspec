@@ -67,7 +67,7 @@ function! s:source.build_candidates(prefix, element) abort "{{{
 endfunction "}}}
 
 function! s:source.build_command(spec) abort "{{{
-  let rspec_command = unite_rspec#set_rspec_command(a:spec, 0)
+  let rspec_command = unite_rspec#build_rspec(a:spec, 0)
   return unite_rspec#run_spec_command(rspec_command)
 endfunction "}}}
 
