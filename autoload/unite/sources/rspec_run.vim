@@ -45,7 +45,8 @@ endfunction
 
 function s:job.on_exit(job_id, data)
   try
-    let g:unite_rspec_run_last_metadata = json_decode(self.json_report)
+    let json_data = s:String.scan(self.json_report, "{.*}")[0]
+    let g:unite_rspec_run_last_metadata = json_decode(json_data)
   catch
     call unite#print_error(v:exception)
   endtry
