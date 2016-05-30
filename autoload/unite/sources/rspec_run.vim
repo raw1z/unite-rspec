@@ -23,14 +23,16 @@ let s:job = {} "{{{
 function s:job.on_stdout(job_id, data)
   let lines = []
   for item in a:data
-    if (s:String.starts_with(item, '{') == 0) && (s:String.ends_with(item, '}') == 0)
-      let lines = s:List.conj(lines, item)
+    if self.reporting
+      let self.json_report = self.json_report . item
+      continue
+    endif
+
+    if s:String.starts_with(item, '{"version":')
+      let self.reporting = 1
+      let self.json_report = self.json_report . item
     else
-      try
-        let g:unite_rspec_run_last_metadata = json_decode(item)
-      catch
-        " call unite#print_error(v:exception)
-      endtry
+      let lines = s:List.conj(lines, item)
     endif
   endfor
 
@@ -42,6 +44,11 @@ function s:job.on_stderr(job_id, data)
 endfunction
 
 function s:job.on_exit(job_id, data)
+  try
+    let g:unite_rspec_run_last_metadata = json_decode(self.json_report)
+  catch
+    call unite#print_error(v:exception)
+  endtry
   let self.exited = 1
 endfunction
 
@@ -57,7 +64,7 @@ endfunction
 
 function s:job.new(spec_to_run)
   let rspec_command = self.build_rspec_command(a:spec_to_run)
-  let instance = extend(copy(self), {'stdout': '', 'stderr': '', 'exited': 0})
+  let instance = extend(copy(self), {'stdout': '', 'stderr': '', 'exited': 0, 'reporting': 0, 'json_report': ''})
   let instance.id = jobstart(rspec_command, instance)
   return instance
 endfunction "}}}
@@ -128,31 +135,33 @@ function! s:source.open_spec_file(data) "{{{
 endfunction "}}}
 
 function! rspec_run#open_spec_file(data) abort "{{{
-  let label = s:String.trim(a:data)
+  let label = substitute(a:data, "(FAILED.*)", "", "g")
+  let label = s:String.trim(label)
   let examples = g:unite_rspec_run_last_metadata.examples
   for example in examples
-    let full_description = example.full_description
-    if stridx(full_description, label) != -1
-      let file_path = example.file_path
-      let line_number = example.line_number
-      let existing_buffer = bufnr(file_path)
-      let window = bufwinnr(existing_buffer)
-
-      if window == -1
-        execute 'wincmd j'
-
-        if &modified
-          execute 'bo split ' . file_path
-        else
-          execute 'e ' . file_path
-        endif
-      else
-        execute window . 'wincmd w'
-      endif
-
-      execute line_number
+    if (example.description == label) || (label =~ ".*".example.full_description.".*")
+      call rspec_run#goto_spec(example.file_path, example.line_number)
       return
     endif
   endfor
+endfunction "}}}
+
+function! rspec_run#goto_spec(file_path, line_number) abort "{{{
+  let existing_buffer = bufnr(a:file_path)
+  let window = bufwinnr(existing_buffer)
+
+  if window == -1
+    execute 'wincmd j'
+
+    if &modified
+      execute 'bo split ' . a:file_path
+    else
+      execute 'e ' . a:file_path
+    endif
+  else
+    execute window . 'wincmd w'
+  endif
+
+  execute a:line_number
 endfunction "}}}
 
