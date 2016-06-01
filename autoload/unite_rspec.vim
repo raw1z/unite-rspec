@@ -38,7 +38,7 @@ endfunction "}}}
 function! unite_rspec#run_spec_command(rspec_command) abort "{{{
   let shellcmd = s:String.replace(a:rspec_command, ' ', '\\ ')
   let shellcmd = s:String.replace(shellcmd, ':', '\:')
-  let uniteOptions = '-log'
+  let uniteOptions = '-no-quit -log'
   let run_cmd = ':Unite '.uniteOptions.' rspec/run:'.shellcmd
   return run_cmd
 endfunction "}}}
