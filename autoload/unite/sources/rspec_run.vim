@@ -55,6 +55,7 @@ function s:job.on_stderr(job_id, data) "{{{
 endfunction "}}}
 function s:job.on_exit(job_id, data) "{{{
   try
+    let g:unite_rspec_last_command = self.spec
     let json_data = get(s:String.scan(self.json_report, "{.*}"), 0, '{}')
     let g:unite_rspec_run_last_metadata = json_decode(json_data)
   catch
@@ -79,7 +80,7 @@ function! s:job.build_rspec_command(spec) "{{{
 endfunction "}}}
 function s:job.new(spec_to_run) "{{{
   let rspec_command = self.build_rspec_command(a:spec_to_run)
-  let instance = extend(copy(self), {'stdout': '', 'stderr': '', 'exited': 0, 'reporting': 0, 'json_report': ''})
+  let instance = extend(copy(self), {'stdout': '', 'stderr': '', 'exited': 0, 'reporting': 0, 'json_report': '', 'spec': a:spec_to_run})
   let instance.id = jobstart(rspec_command, instance)
   return instance
 endfunction "}}}
