@@ -1,8 +1,12 @@
+" Variables {{{
 let s:Vital = vital#of('vital')
 let s:Prelude = s:Vital.import('Prelude')
 let s:Filepath = s:Vital.import('System.Filepath')
 let s:String = s:Vital.import('Data.String')
 let s:List = s:Vital.import('Data.List')
+
+let g:unite_rspec_run_last_metadata = {}
+"}}}
 
 function! unite#sources#rspec_run#define() abort "{{{
   return s:source
@@ -16,11 +20,8 @@ let s:source = {
       \ 'lines' : 0,
       \}
 
-let g:unite_rspec_run_last_metadata = {}
-
 let s:job = {} "{{{
-
-function s:job.on_stdout(job_id, data)
+function s:job.parse_data(data) "{{{
   let lines = []
   for item in a:data
     if self.reporting
@@ -36,39 +37,45 @@ function s:job.on_stdout(job_id, data)
     endif
   endfor
 
-  let self.stdout = self.stdout . join(lines, "\n")
-endfunction
-
-function s:job.on_stderr(job_id, data)
-  let self.stderr = self.stderr . join(a:data, "\n")
-endfunction
-
-function s:job.on_exit(job_id, data)
+  return join(lines, "\n")
+endfunction "}}}
+function s:job.on_stdout(job_id, data) "{{{
+  let self.stdout = self.stdout . self.parse_data(a:data)
+endfunction "}}}
+function s:job.on_stderr(job_id, data) "{{{
+  let self.stderr = self.stderr . self.parse_data(a:data)
+endfunction "}}}
+function s:job.on_exit(job_id, data) "{{{
   try
-    let g:unite_rspec_run_last_metadata = json_decode(self.json_report)
+    let json_data = get(s:String.scan(self.json_report, "{.*}"), 0, '{}')
+    let g:unite_rspec_run_last_metadata = json_decode(json_data)
   catch
     call unite#print_error(v:exception)
   endtry
   let self.exited = 1
-endfunction
-
-function s:job.read_lines()
-  let lines = s:String.lines(self.stdout)
+endfunction "}}}
+function s:job.read_lines() "{{{
+  let stdout_lines = self.read_lines_from_stream(self.stdout)
   let self.stdout = ''
-  return lines
-endfunction
 
-function! s:job.build_rspec_command(spec)
+  let stderr_lines = self.read_lines_from_stream(self.stderr)
+  let self.stderr = ''
+
+  return s:List.concat([stdout_lines, stderr_lines])
+endfunction "}}}
+function s:job.read_lines_from_stream(stream) "{{{
+  return s:String.lines(a:stream)
+endfunction "}}}
+function! s:job.build_rspec_command(spec) "{{{
   return './bin/rspec --format documentation --format json '.a:spec
-endfunction
-
-function s:job.new(spec_to_run)
+endfunction "}}}
+function s:job.new(spec_to_run) "{{{
   let rspec_command = self.build_rspec_command(a:spec_to_run)
   let instance = extend(copy(self), {'stdout': '', 'stderr': '', 'exited': 0, 'reporting': 0, 'json_report': ''})
   let instance.id = jobstart(rspec_command, instance)
   return instance
 endfunction "}}}
-
+"}}}
 function! s:source.hooks.on_init(args, context) abort "{{{
   let command = join(filter(copy(a:args), "v:val !=# '!'"))
   if command == ''
@@ -78,7 +85,6 @@ function! s:source.hooks.on_init(args, context) abort "{{{
   endif
   let a:context.source__command = command
 endfunction"}}}
-
 function! s:source.gather_candidates(args, context) abort "{{{
   if a:context.is_redraw
     let a:context.is_async = 1
@@ -98,7 +104,6 @@ function! s:source.gather_candidates(args, context) abort "{{{
 
   return self.async_gather_candidates(a:args, a:context)
 endfunction "}}}
-
 function! s:source.async_gather_candidates(args, context) abort "{{{
   let job = a:context.source__job
 
@@ -120,7 +125,6 @@ function! s:source.async_gather_candidates(args, context) abort "{{{
 
   return candidates
 endfunction "}}}
-
 function! s:source.hooks.on_close(args, context) abort "{{{
   if has_key(a:context, 'source__job')
     let job = a:context.source__job
@@ -129,11 +133,9 @@ function! s:source.hooks.on_close(args, context) abort "{{{
     endif
   endif
 endfunction "}}}
-
 function! s:source.open_spec_file(data) "{{{
   return "call rspec_run#open_spec_file('". a:data . "')"
 endfunction "}}}
-
 function! rspec_run#open_spec_file(data) abort "{{{
   let label = substitute(a:data, "(FAILED.*)", "", "g")
   let label = s:String.trim(label)
@@ -145,7 +147,6 @@ function! rspec_run#open_spec_file(data) abort "{{{
     endif
   endfor
 endfunction "}}}
-
 function! rspec_run#goto_spec(file_path, line_number) abort "{{{
   let existing_buffer = bufnr(a:file_path)
   let window = bufwinnr(existing_buffer)
