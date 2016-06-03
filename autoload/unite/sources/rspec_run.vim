@@ -202,7 +202,8 @@ function! s:source.hooks.on_close(args, context) abort "{{{
   endif
 endfunction "}}}
 function! s:source.open_spec_file(data) "{{{
-  return "call rspec_run#open_spec_file('". a:data . "')"
+  let str = '"'. a:data . '"'
+  return "call rspec_run#open_spec_file(". str . ")"
 endfunction "}}}
 function! rspec_run#sanitized_candidate_word(data) abort "{{{
   let label = substitute(a:data, "\e\[[0-9;]*m", '', 'g')
