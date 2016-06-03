@@ -214,19 +214,23 @@ function! rspec_run#open_spec_file(data) abort "{{{
   let examples = g:unite_rspec_run_last_metadata.examples
   for example in examples
     if (example.description == label) || (label =~ ".*".example.full_description.".*")
-      call rspec_run#goto_spec(example.file_path, example.line_number)
+      call rspec_run#goto_file_at_line(example.file_path, example.line_number, 0)
       return
+    else
+      if rspec_run#goto_stack_file(label, example)
+        return
+      endif
     endif
   endfor
 endfunction "}}}
-function! rspec_run#goto_spec(file_path, line_number) abort "{{{
+function! rspec_run#goto_file_at_line(file_path, line_number, splitted) abort "{{{
   let existing_buffer = bufnr(a:file_path)
   let window = bufwinnr(existing_buffer)
 
   if window == -1
     execute 'wincmd j'
 
-    if &modified
+    if &modified || a:splitted
       execute 'bo split ' . a:file_path
     else
       execute 'e ' . a:file_path
@@ -237,4 +241,17 @@ function! rspec_run#goto_spec(file_path, line_number) abort "{{{
 
   execute a:line_number
 endfunction "}}}
+function! rspec_run#goto_stack_file(data, example) abort "{{{
+  if s:String.starts_with(a:data, "# ")
+    let scans = s:String.scan(a:data, '\v\.\/.*\.rb\:\d+')
+    if !empty(scans)
+      let tokens = s:String.nsplit(scans[0], 2, ':')
+      if !empty(tokens)
+        call rspec_run#goto_file_at_line(tokens[0], tokens[1], 1)
+        return 1
+      endif
+    endif
+  endif
 
+  return 0
+endfunction "}}}
