@@ -76,7 +76,12 @@ function s:job.read_lines_from_stream(stream) "{{{
   return s:String.lines(a:stream)
 endfunction "}}}
 function! s:job.build_rspec_command(spec) "{{{
-  return ['./bin/rspec', '--color', '--format', 'documentation', '--format', 'json', a:spec]
+  let runner = 'rspec'
+  if executable('./bin/rspec')
+    let runner = './bin/rspec'
+  endif
+
+  return [runner, '--color', '--format', 'documentation', '--format', 'json', a:spec]
 endfunction "}}}
 function s:job.new(spec_to_run) "{{{
   let rspec_command = self.build_rspec_command(a:spec_to_run)
