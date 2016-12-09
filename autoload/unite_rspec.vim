@@ -36,6 +36,9 @@ function! unite_rspec#build_rspec(spec, line) abort "{{{
 endfunction "}}}
 
 function! unite_rspec#run_spec_command(rspec_command) abort "{{{
+  " update file before running tests
+  exec ':update'
+
   let shellcmd = s:String.replace(a:rspec_command, ' ', '\\ ')
   let shellcmd = s:String.replace(shellcmd, ':', '\:')
   let uniteOptions = '-no-quit'
