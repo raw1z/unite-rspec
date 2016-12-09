@@ -81,7 +81,7 @@ function! s:job.build_rspec_command(spec) "{{{
     let runner = './bin/rspec'
   endif
 
-  return [runner, '--color', '--format', 'documentation', '--format', 'json', a:spec]
+  return [runner, '--no-profile', '--color', '--format', 'documentation', '--format', 'json', a:spec]
 endfunction "}}}
 function s:job.new(spec_to_run) "{{{
   let rspec_command = self.build_rspec_command(a:spec_to_run)
